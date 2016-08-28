@@ -119,17 +119,17 @@ class Model():
 
         with tf.variable_scope("vgg16"):
             # Image Emcoding
-            self.encode_img_W = tf.Variable(tf.random_uniform([4096, self.input_encoding_size], -0.1, 0.1), name='encode_img_W')
+            self.encode_img_W = tf.Variable(tf.random_uniform([4096, self.input_encoding_size], -0.01, 0.01), name='encode_img_W')
             self.encode_img_b = self.init_bias(self.input_encoding_size, name='encode_img_b')
 
         # Variable in language model
         with tf.variable_scope("rnnlm"):
             # Word Embedding table
             #with tf.device("/cpu:0"):
-            self.Wemb = tf.Variable(tf.random_uniform([self.vocab_size + 1, self.input_encoding_size], -0.1, 0.1), name='Wemb')
+            self.Wemb = tf.Variable(tf.random_uniform([self.vocab_size + 1, self.input_encoding_size]), name='Wemb')
 
             #
-            self.embed_word_W = tf.Variable(tf.random_uniform([self.rnn_size, self.vocab_size + 1], -0.1, 0.1), name='embed_word_W')
+            self.embed_word_W = tf.Variable(tf.random_uniform([self.rnn_size, self.vocab_size + 1], -0.05, 0.05), name='embed_word_W')
             self.embed_word_b = self.init_bias(self.vocab_size + 1, name='embed_word_b')
 
             # RNN cell
@@ -181,23 +181,33 @@ class Model():
 
         # Collect the rnn variables, and create the optimizer of rnn
         tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='rnnlm')
+        optimizer = tf.train.AdamOptimizer(self.lr, beta1=0.8)
         grads = self.clip_by_value(tf.gradients(self.cost, tvars), -self.opt.grad_clip, self.opt.grad_clip)
+        grads = optimizer.compute_gradients(self.cost, tvars)
+        grads_cliped = [(tf.clip_by_value(i, -self.opt.grad_clip, self.opt.grad_clip),j) for i,j in grads if not i is None]
         #grads, _ = tf.clip_by_global_norm(tf.gradients(self.cost, tvars),
         #        self.opt.grad_clip)
-        optimizer = tf.train.AdamOptimizer(self.lr)
-        self.train_op = optimizer.apply_gradients(zip(grads, tvars))
+        self.train_op = optimizer.apply_gradients(grads_cliped)
 
         # Collect the cnn variables, and create the optimizer of cnn
         cnn_tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg16')
-        cnn_grads = self.clip_by_value(tf.gradients(self.cost, cnn_tvars), -self.opt.grad_clip, self.opt.grad_clip)
+        cnn_optimizer = tf.train.AdamOptimizer(self.cnn_lr, beta1=0.8)     
+        cnn_grads = cnn_optimizer.compute_gradients(self.cost, cnn_tvars)
+        cnn_grads_cliped = [(tf.clip_by_value(i, -self.opt.grad_clip, self.opt.grad_clip),j) for i,j in cnn_grads if not i is None]
         #cnn_grads, _ = tf.clip_by_global_norm(tf.gradients(self.cost, cnn_tvars),
         #        self.opt.grad_clip)
-        cnn_optimizer = tf.train.AdamOptimizer(self.cnn_lr)     
-        self.cnn_train_op = cnn_optimizer.apply_gradients(zip(cnn_grads, cnn_tvars))
+        self.cnn_train_op = cnn_optimizer.apply_gradients(cnn_grads_cliped)
 
         tf.scalar_summary('training loss', self.cost)
         tf.scalar_summary('learning rate', self.lr)
         tf.scalar_summary('cnn learning rate', self.cnn_lr)
+        for i,j in cnn_grads:
+            if not i is None and j.name.startswith('vgg16_1'): 
+                tf.histogram_summary(j.name+'_v', j)
+                tf.histogram_summary(j.name+'_d', i)
+        for i,j in grads:
+            tf.histogram_summary(j.name+'_v', j)
+            tf.histogram_summary(j.name+'_d', i)
         self.summaries = tf.merge_all_summaries()
 
     def build_generator(self):
