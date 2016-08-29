@@ -72,7 +72,7 @@ class DataLoader():
     def get_seq_length(self):
         return self.seq_length
 
-    def get_batch(self, split, batch_size=None):
+    def get_batch(self, split, data_augment, batch_size=None):
         split_ix = self.split_ix[split]
         batch_size = batch_size or self.batch_size
 
@@ -97,7 +97,11 @@ class DataLoader():
             # fetch image
             #img = self.load_image(self.image_info[ix]['filename'])
             img = self.h5_file['images'][ix, :, :, :].transpose(1, 2, 0)
-            img_batch[i] = img[16:240, 16:240, :].astype('float32')/255.0
+            if data_augment:
+                xoff, yoff = random.randint(0,32), random.randint(0,32)
+            else:
+                xoff, yoff = 16, 16
+            img_batch[i] = img[xoff:xoff+224, yoff:yoff+224, :].astype('float32')/255.0
 
             # fetch the sequence labels
             ix1 = self.label_start_ix[ix] - 1 #label_start_ix starts from 1

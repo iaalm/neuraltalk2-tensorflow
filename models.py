@@ -119,7 +119,7 @@ class Model():
 
         with tf.variable_scope("vgg16"):
             # Image Emcoding
-            self.encode_img_W = tf.Variable(tf.random_uniform([4096, self.input_encoding_size], -0.01, 0.01), name='encode_img_W')
+            self.encode_img_W = tf.Variable(tf.random_uniform([4096, self.input_encoding_size], -0.02, 0.02), name='encode_img_W')
             self.encode_img_b = self.init_bias(self.input_encoding_size, name='encode_img_b')
 
         # Variable in language model
@@ -201,13 +201,13 @@ class Model():
         tf.scalar_summary('training loss', self.cost)
         tf.scalar_summary('learning rate', self.lr)
         tf.scalar_summary('cnn learning rate', self.cnn_lr)
-        for i,j in cnn_grads:
-            if not i is None and j.name.startswith('vgg16_1'): 
-                tf.histogram_summary(j.name+'_v', j)
-                tf.histogram_summary(j.name+'_d', i)
-        for i,j in grads:
-            tf.histogram_summary(j.name+'_v', j)
-            tf.histogram_summary(j.name+'_d', i)
+        #for i,j in cnn_grads:
+            #if not i is None and j.name.startswith('vgg16_1'): 
+                #tf.histogram_summary(j.name+'_v', j)
+                #tf.histogram_summary(j.name+'_d', i)
+        #for i,j in grads:
+            #tf.histogram_summary(j.name+'_v', j)
+            #tf.histogram_summary(j.name+'_d', i)
         self.summaries = tf.merge_all_summaries()
 
     def build_generator(self):

@@ -60,7 +60,7 @@ def train(opt):
         while True:
             start = time.time()
             # Load data from train split (0)
-            data = loader.get_batch(0)
+            data = loader.get_batch(0, True)
             print('Read data:', time.time() - start)
 
             start = time.time()
@@ -148,10 +148,10 @@ def eval_split(sess, model, loader, eval_kwargs):
     predictions = []
     while True:
         if opt.beam_size > 1:
-            data = loader.get_batch(split, 1)
+            data = loader.get_batch(split, False, 1)
             n = n + 1
         else:
-            data = loader.get_batch(split)
+            data = loader.get_batch(split, False)
             n = n + loader.batch_size
 
         # forward the model to get loss
