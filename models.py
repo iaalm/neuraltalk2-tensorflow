@@ -146,7 +146,7 @@ class Model():
                                 lambda : tf.constant(1 - self.drop_prob_lm),
                                 lambda : tf.constant(1.0), name = 'keep_prob')
 
-            self.basic_cell = cell = rnn_cell.DropoutWrapper(cell_fn(self.rnn_size), 1.0, self.keep_prob)
+            self.basic_cell = cell = rnn_cell.DropoutWrapper(cell_fn(self.rnn_size, state_is_tuple=False), 1.0, self.keep_prob)
 
             self.cell = rnn_cell.MultiRNNCell([cell] * opt.num_layers, state_is_tuple = True)
 
@@ -182,7 +182,6 @@ class Model():
         # Collect the rnn variables, and create the optimizer of rnn
         tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='rnnlm')
         optimizer = tf.train.AdamOptimizer(self.lr, beta1=0.8)
-        grads = self.clip_by_value(tf.gradients(self.cost, tvars), -self.opt.grad_clip, self.opt.grad_clip)
         grads = optimizer.compute_gradients(self.cost, tvars)
         grads_cliped = [(tf.clip_by_value(i, -self.opt.grad_clip, self.opt.grad_clip),j) for i,j in grads if not i is None]
         #grads, _ = tf.clip_by_global_norm(tf.gradients(self.cost, tvars),
